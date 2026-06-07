@@ -46,4 +46,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the user's pets.
+     */
+    public function pets()
+    {
+        return $this->hasMany(Pet::class);
+    }
 }

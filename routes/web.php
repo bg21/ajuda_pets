@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 Volt::route('login', 'portal.login')->name('portal.login');
 
 // Rotas Protegidas (Exigem Login do Tutor)
-Route::middleware(['auth:tutor'])->prefix('portal')->name('portal.')->group(function () {
+Route::middleware(['auth'])->prefix('portal')->name('portal.')->group(function () {
     Volt::route('/', 'portal.dashboard')->name('dashboard');
     Volt::route('/pet/{pet_id}', 'portal.pet')->name('pet');
     Volt::route('/agendamentos', 'portal.agendamentos')->name('agendamentos');
@@ -16,7 +16,7 @@ Route::middleware(['auth:tutor'])->prefix('portal')->name('portal.')->group(func
 
     // Logout
     Route::post('/logout', function () {
-        Auth::guard('tutor')->logout();
+        Auth::guard('web')->logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
         return redirect()->route('portal.login');

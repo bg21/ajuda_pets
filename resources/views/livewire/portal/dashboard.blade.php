@@ -2,121 +2,136 @@
 
 use Livewire\Volt\Component;
 use Livewire\Attributes\Layout;
-use Illuminate\Support\Facades\Auth;
 
-new #[Layout('layouts.tutor')] class extends Component {
-    public $pets = [];
-    public $tutorNome = '';
-
-    public function mount()
-    {
-        $tutor = Auth::guard('tutor')->user();
-        $this->tutorNome = explode(' ', trim($tutor->nome))[0];
-        $this->pets = $tutor->pets()->get();
-    }
+new #[Layout('components.layouts.app')] class extends Component {
+    //
 }; ?>
 
-<style>
-    @media (min-width: 768px) {
-        .mobile-header, .portal-bottom-nav { display: none !important; }
-        .desktop-container { padding: 40px; max-width: 900px; margin: 0 auto; }
-    }
-    @media (max-width: 767px) {
-        .desktop-pet-list { padding: 0 20px 10px 20px !important; }
-    }
-</style>
+<div class="space-y-6 pb-10">
+    <x-slot name="title">Dashboard</x-slot>
 
-<div class="desktop-container" style="display: flex; flex-direction: column; background: #fff; min-height: 100%;">
-    
-    <!-- Top Header (Apenas Mobile) -->
-    <div class="mobile-header" style="padding: 24px 20px 16px 20px; display: flex; justify-content: space-between; align-items: center; background: #fff;">
-        <div style="font-size: 24px; font-weight: 800; color: #299D91; letter-spacing: -0.5px;">vet<span style="color:#191919">os</span><span style="color:#E53E3E">♥</span></div>
-        <button style="background: none; border: none; padding: 0; cursor: pointer;">
-            <svg width="24" height="24" fill="none" stroke="#191919" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    <!-- Cabeçalho Principal -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-800">Olá, {{ Auth::user()->name ?? 'Tutor' }}! 👋</h2>
+            <p class="text-slate-500 text-base mt-1">Acompanhe a saúde e o desenvolvimento dos seus pets.</p>
+        </div>
+        <button class="bg-accent hover:bg-accent-dark text-white font-semibold px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center space-x-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span>Adicionar Pet</span>
         </button>
     </div>
 
-    <!-- Título Saudação -->
-    <div style="padding: 0 20px; margin-bottom: 24px;">
-        <h1 style="font-size: 22px; font-weight: 700; color: #191919; margin: 0;">Olá, {{ $tutorNome }}</h1>
-        <p style="font-size: 14px; color: #878787; margin: 4px 0 0 0;">Acompanhe a saúde da sua família</p>
-    </div>
-
-    <!-- Seção: Seus Pets (Carrossel Horizontal) -->
-    <div style="padding: 0 0 24px 0;">
-        <h2 style="font-size: 18px; font-weight: 700; color: #191919; margin: 0 0 16px 20px;">Seus pets</h2>
-        
-        <div class="desktop-pet-list" style="display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; -ms-overflow-style: none;">
-            <!-- Oculta scrollbar no Chrome/Safari -->
-            <style>
-                div::-webkit-scrollbar { display: none; }
-            </style>
-
-            @forelse($pets as $pet)
-                <a href="{{ route('portal.pet', ['pet_id' => $pet->id]) }}" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0; cursor: pointer;">
-                    <!-- Círculo do Pet (Avatar) -->
-                    <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #E8F5F3 0%, #CCECE8 100%); border: 3px solid #299D91; display: flex; align-items: center; justify-content: center; color: #0F766E; font-size: 28px; font-weight: 800; text-transform: uppercase; box-shadow: 0 4px 10px rgba(41, 157, 145, 0.15);">
-                        {{ substr($pet->nome, 0, 1) }}
-                    </div>
-                    <span style="font-size: 14px; font-weight: 600; color: #525256;">{{ explode(' ', trim($pet->nome))[0] }}</span>
-                </a>
-            @empty
-                <div style="font-size: 13px; color: #9F9F9F; padding: 10px 0;">Você ainda não possui pets cadastrados.</div>
-            @endforelse
-
-            <!-- Botão Adicionar -->
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0; cursor: pointer;">
-                <div style="width: 72px; height: 72px; border-radius: 50%; background: #F8F9FA; border: 2px dashed #CBD5E1; display: flex; align-items: center; justify-content: center; color: #64748B;">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                </div>
-                <span style="font-size: 14px; font-weight: 600; color: #64748B;">Adicionar</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Banner (Estilo Promotional) -->
-    <div style="padding: 0 20px;">
-        <div style="background: linear-gradient(135deg, #4338CA 0%, #312E81 100%); border-radius: 16px; padding: 24px; color: #fff; position: relative; overflow: hidden; box-shadow: 0 10px 25px rgba(67, 56, 202, 0.2);">
-            <!-- Bolhas decorativas de fundo -->
-            <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-            <div style="position: absolute; bottom: -30px; left: 40%; width: 80px; height: 80px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- COLUNA PRINCIPAL -->
+        <div class="lg:col-span-2 space-y-6">
             
-            <h3 style="font-size: 18px; font-weight: 800; margin: 0 0 8px 0; position: relative; z-index: 1;">Clube de Benefícios</h3>
-            <p style="font-size: 13px; color: #E0E7FF; margin: 0 0 16px 0; line-height: 1.4; position: relative; z-index: 1; max-width: 80%;">
-                Mantenha a saúde da sua família em dia e ganhe descontos nas próximas vacinas.
-            </p>
-            <button style="background: #fff; color: #4338CA; border: none; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; position: relative; z-index: 1;">
-                Saiba Mais
-            </button>
+            <!-- Cartão do Perfil do Pet -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                
+                <div class="relative shrink-0">
+                    <div class="w-28 h-28 rounded-xl overflow-hidden shadow-sm border border-slate-100">
+                        <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Dog" class="w-full h-full object-cover">
+                    </div>
+                </div>
+
+                <div class="flex-1 z-10 w-full text-center md:text-left">
+                    <div class="flex flex-col md:flex-row md:items-center gap-3 mb-1 justify-center md:justify-start">
+                        <h3 class="text-xl font-bold text-slate-800">Max</h3>
+                        <span class="bg-emerald-50 text-primary border border-emerald-100 font-semibold px-2 py-0.5 rounded-lg text-xs">Golden Retriever</span>
+                    </div>
+                    <p class="text-slate-500 text-sm mb-4">Macho • 3 anos e 2 meses • Dourado</p>
+                    
+                    <div class="flex justify-center md:justify-start gap-6">
+                        <div>
+                            <p class="text-xs text-slate-400 font-semibold uppercase mb-1">Peso Atual</p>
+                            <p class="text-lg font-bold text-slate-800">32.5 <span class="text-xs font-normal text-slate-500">kg</span></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400 font-semibold uppercase mb-1">Próx. Vacina</p>
+                            <p class="text-lg font-bold text-slate-800">15 Out</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de Acompanhamento de Peso -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-slate-800">Histórico de Peso</h3>
+                    <button class="text-sm font-medium text-primary hover:text-white hover:bg-primary transition bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-100">
+                        + Registrar
+                    </button>
+                </div>
+                
+                <div class="relative h-48 w-full flex items-end justify-between px-4 pb-6 pt-4 border-b border-slate-100">
+                    <!-- Linha principal SVG -->
+                    <svg class="absolute inset-0 h-full w-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 100 100">
+                        <path d="M0 80 Q 25 70, 50 40 T 100 20" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round"></path>
+                    </svg>
+
+                    <!-- Pontos -->
+                    <div class="flex flex-col items-center z-10 w-8">
+                        <div class="w-3 h-3 bg-white border-2 border-primary rounded-full mb-4"></div>
+                        <span class="text-xs font-medium text-slate-400">Jan</span>
+                    </div>
+                    <div class="flex flex-col items-center z-10 w-8">
+                        <div class="w-3 h-3 bg-white border-2 border-primary rounded-full mb-[30px]"></div>
+                        <span class="text-xs font-medium text-slate-400">Fev</span>
+                    </div>
+                    <div class="flex flex-col items-center z-10 w-8">
+                        <div class="w-3 h-3 bg-white border-2 border-primary rounded-full mb-[60px]"></div>
+                        <span class="text-xs font-medium text-slate-400">Mar</span>
+                    </div>
+                    <div class="flex flex-col items-center z-10 w-8">
+                        <div class="w-3 h-3 bg-primary ring-2 ring-primary/20 rounded-full mb-[85px]"></div>
+                        <span class="text-xs font-bold text-primary">Abr</span>
+                    </div>
+                </div>
+            </div>
+
         </div>
-    </div>
 
-    <!-- Bottom Navigation Bar -->
-    <div class="portal-bottom-nav" style="position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #EFEFEF; display: flex; justify-content: space-around; padding: 12px 0; padding-bottom: calc(12px + env(safe-area-inset-bottom)); max-width: 480px; margin: 0 auto; z-index: 100;">
-        
-        <!-- Tab: Início (Ativo) -->
-        <a href="{{ route('portal.dashboard') }}" style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: #299D91;">
-            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-            <span style="font-size: 10px; font-weight: 700;">Início</span>
-        </a>
+        <!-- COLUNA LATERAL (Lembretes) -->
+        <div class="space-y-6">
+            
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-slate-800">Lembretes</h3>
+                    <span class="bg-orange-50 text-accent font-semibold text-xs px-2 py-1 rounded-md border border-orange-100">2 Pendentes</span>
+                </div>
 
-        <!-- Tab: Financeiro -->
-        <a href="{{ route('portal.financeiro') }}" style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: #9F9F9F;">
-            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-            <span style="font-size: 10px; font-weight: 600;">Financeiro</span>
-        </a>
+                <div class="space-y-3">
+                    <div class="p-3.5 rounded-xl bg-orange-50/50 border border-orange-100 flex items-center space-x-3 cursor-pointer hover:bg-orange-50 transition">
+                        <div class="w-12 h-12 rounded-lg bg-white flex flex-col items-center justify-center text-accent shrink-0 border border-orange-100/50">
+                            <span class="text-[10px] font-bold uppercase text-orange-400/80 mb-0.5">Out</span>
+                            <span class="text-lg font-bold leading-none">15</span>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-slate-800 text-sm">Vacina V10</h4>
+                            <p class="text-xs font-medium text-slate-500 mt-0.5">Max</p>
+                        </div>
+                        <div class="w-2 h-2 rounded-full bg-accent shrink-0"></div>
+                    </div>
 
-        <!-- Tab: Agenda -->
-        <a href="{{ route('portal.agendamentos') }}" style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: #9F9F9F;">
-            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            <span style="font-size: 10px; font-weight: 600;">Agenda</span>
-        </a>
+                    <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center space-x-3 cursor-pointer hover:bg-slate-100 transition">
+                        <div class="w-12 h-12 rounded-lg bg-white border border-slate-100 flex flex-col items-center justify-center text-slate-500 shrink-0">
+                            <span class="text-[10px] font-bold uppercase text-slate-400 mb-0.5">Out</span>
+                            <span class="text-lg font-bold leading-none">20</span>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-slate-800 text-sm">Pesagem</h4>
+                            <p class="text-xs font-medium text-slate-500 mt-0.5">Max</p>
+                        </div>
+                    </div>
+                </div>
 
-        <!-- Tab: Sair -->
-        <a href="{{ route('portal.logout') }}" style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: #9F9F9F;">
-            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-            <span style="font-size: 10px; font-weight: 600;">Sair</span>
-        </a>
+                <button class="w-full mt-4 py-2.5 rounded-lg font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition border border-dashed border-slate-200 text-sm">
+                    Ver Calendário
+                </button>
+            </div>
 
+        </div>
     </div>
 </div>
