@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Pet extends Model
 {
     protected $fillable = [
-        'user_id', 'name', 'species', 'breed', 'birth_date', 'coat_color', 'photo_path'
+        'user_id', 'name', 'species', 'breed', 'gender', 'birth_date', 'coat_color', 'photo_path'
     ];
 
     protected $casts = [
