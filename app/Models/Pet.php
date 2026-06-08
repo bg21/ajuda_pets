@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Pet extends Model
 {
     protected $fillable = [
-        'user_id', 'name', 'species', 'breed', 'gender', 'birth_date', 'coat_color', 'photo_path'
+        'user_id', 'uuid', 'name', 'species', 'breed', 'gender', 'birth_date', 'coat_color', 'photo_path', 'emergency_contact', 'medical_conditions'
     ];
 
     protected $casts = [
@@ -32,5 +32,10 @@ class Pet extends Model
     public function exams()
     {
         return $this->hasMany(Exam::class)->orderBy('date_performed', 'desc');
+    }
+
+    public function observations()
+    {
+        return $this->hasMany(Observation::class)->orderBy('date_observed', 'desc');
     }
 }

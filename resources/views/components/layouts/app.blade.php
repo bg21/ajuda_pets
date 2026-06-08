@@ -10,10 +10,13 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="bg-background text-slate-800 font-sans antialiased flex h-screen overflow-hidden">
+<body class="bg-background text-slate-800 font-sans antialiased flex h-screen overflow-hidden" x-data="{ sidebarOpen: false }">
+
+    <!-- Mobile backdrop -->
+    <div x-show="sidebarOpen" x-transition.opacity class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden" @click="sidebarOpen = false" style="display: none;"></div>
 
     <!-- Sidebar -->
-    <aside class="w-64 bg-primary-dark text-white flex flex-col z-20 shadow-xl">
+    <aside class="w-64 bg-primary-dark text-white flex flex-col z-50 shadow-xl fixed inset-y-0 left-0 transform md:relative md:translate-x-0 transition duration-300 ease-in-out" :class="{'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen}">
         <!-- Logo -->
         <div class="h-20 flex items-center px-6 border-b border-teal-800/50">
             <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center mr-3 shadow-sm">
@@ -24,34 +27,29 @@
 
         <!-- Nav -->
         <nav class="flex-1 px-4 py-6 space-y-1.5">
-            <a href="{{ route('portal.dashboard') }}" class="flex items-center px-4 py-3 bg-teal-800/60 rounded-xl text-teal-50 font-medium transition shadow-sm border border-teal-700/50">
-                <svg class="w-5 h-5 mr-3 text-accent" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
-                Dashboard
-            </a>
-            <a href="#" class="flex items-center px-4 py-3 rounded-xl text-teal-200 hover:bg-teal-800/40 hover:text-white transition font-medium">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            <a href="{{ route('portal.dashboard') }}" class="flex items-center px-4 py-3 rounded-xl transition font-medium {{ request()->routeIs('portal.dashboard') || request()->routeIs('portal.pet') ? 'bg-teal-800/60 text-teal-50 shadow-sm border border-teal-700/50' : 'text-teal-200 hover:bg-teal-800/40 hover:text-white' }}">
+                <svg class="w-5 h-5 mr-3 {{ request()->routeIs('portal.dashboard') || request()->routeIs('portal.pet') ? 'text-accent' : '' }}" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
                 Meus Pets
             </a>
-            <a href="#" class="flex items-center justify-between px-4 py-3 rounded-xl text-teal-200 hover:bg-teal-800/40 hover:text-white transition font-medium">
+            <a href="{{ route('portal.agendamentos') }}" class="flex items-center justify-between px-4 py-3 rounded-xl transition font-medium {{ request()->routeIs('portal.agendamentos') ? 'bg-teal-800/60 text-teal-50 shadow-sm border border-teal-700/50' : 'text-teal-200 hover:bg-teal-800/40 hover:text-white' }}">
                 <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                    Lembretes
+                    <svg class="w-5 h-5 mr-3 {{ request()->routeIs('portal.agendamentos') ? 'text-accent' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    Lembretes / Vacinas
                 </div>
-                <span class="bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full">3</span>
             </a>
         </nav>
 
         <!-- User -->
         <div class="p-4 border-t border-teal-800/50">
-            <div class="flex items-center px-2 mb-3">
-                <div class="w-9 h-9 rounded-full bg-accent flex items-center justify-center font-bold text-white shadow-sm text-sm mr-3">
+            <a href="{{ route('portal.perfil') }}" class="flex items-center px-2 mb-3 hover:bg-teal-800/40 p-2 rounded-xl transition cursor-pointer group">
+                <div class="w-9 h-9 rounded-full bg-accent flex items-center justify-center font-bold text-white shadow-sm text-sm mr-3 group-hover:scale-105 transition-transform">
                     {{ substr(Auth::user()->name ?? 'T', 0, 1) }}
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-bold text-white truncate">{{ explode(' ', Auth::user()->name ?? 'Tutor')[0] }}</p>
-                    <p class="text-xs text-teal-300 truncate">Minha Conta</p>
+                    <p class="text-xs text-teal-300 truncate group-hover:text-teal-200">Editar Perfil</p>
                 </div>
-            </div>
+            </a>
             <form method="POST" action="{{ route('portal.logout') }}">
                 @csrf
                 <button type="submit" class="w-full flex items-center justify-center px-4 py-2 bg-teal-800/40 hover:bg-red-500/80 rounded-lg text-teal-100 hover:text-white transition text-sm font-medium">
@@ -65,8 +63,13 @@
     <!-- Main Content -->
     <main class="flex-1 flex flex-col overflow-hidden relative">
         <!-- Top Header -->
-        <header class="h-16 bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-100 flex items-center justify-between px-8 z-10 sticky top-0">
-            <h1 class="text-xl font-bold text-slate-700">{{ $title ?? 'Dashboard' }}</h1>
+        <header class="h-16 bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-100 flex items-center justify-between px-4 md:px-8 z-10 sticky top-0">
+            <div class="flex items-center gap-3">
+                <button @click="sidebarOpen = true" class="md:hidden text-slate-500 hover:text-primary transition p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <h1 class="text-xl font-bold text-slate-700 truncate max-w-[200px] sm:max-w-none">{{ $title ?? 'Dashboard' }}</h1>
+            </div>
             
             <div class="flex items-center space-x-4">
                 <button class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-accent hover:bg-orange-50 transition border border-slate-100 shadow-sm">
@@ -76,7 +79,7 @@
         </header>
 
         <!-- Dynamic Content (Slot) -->
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 md:p-8">
             {{ $slot }}
         </div>
     </main>

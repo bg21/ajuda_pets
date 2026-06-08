@@ -2,113 +2,127 @@
 
 use Livewire\Volt\Component;
 use Livewire\Attributes\Layout;
-use App\Models\Agendamento;
+use App\Models\Vaccine;
 use Illuminate\Support\Facades\Auth;
 
-new #[Layout('layouts.tutor')] class extends Component {
-    public $proximos = [];
-    public $historico = [];
+new #[Layout('components.layouts.app')] class extends Component {
+    public $proximasVacinas = [];
+    public $historicoVacinas = [];
 
     public function mount()
     {
-        $tutor_id = Auth::guard('tutor')->id();
+        $user_id = Auth::id();
         
-        $agendamentos = Agendamento::with(['pet', 'veterinario'])
-            ->whereHas('pet', function($query) use ($tutor_id) {
-                $query->where('tutor_id', $tutor_id);
+        $vacinas = Vaccine::with('pet')
+            ->whereHas('pet', function($query) use ($user_id) {
+                $query->where('user_id', $user_id);
             })
-            ->where('status', '!=', 'cancelado')
-            ->orderBy('data_hora', 'asc')
+            ->orderBy('next_due_date', 'asc')
             ->get();
 
-        $this->proximos = $agendamentos->filter(function($ag) {
-            return $ag->data_hora >= now()->startOfDay();
+        // Próximas vacinas (onde next_due_date >= hoje)
+        $this->proximasVacinas = $vacinas->filter(function($vacina) {
+            return $vacina->next_due_date && $vacina->next_due_date >= now()->startOfDay();
         })->values();
 
-        $this->historico = $agendamentos->filter(function($ag) {
-            return $ag->data_hora < now()->startOfDay();
-        })->sortByDesc('data_hora')->values();
+        // Histórico de vacinas (ordenado pela data em que foi dada)
+        $historico = Vaccine::with('pet')
+            ->whereHas('pet', function($query) use ($user_id) {
+                $query->where('user_id', $user_id);
+            })
+            ->whereNotNull('date_given')
+            ->orderBy('date_given', 'desc')
+            ->get();
+            
+        $this->historicoVacinas = $historico;
     }
 }; ?>
 
-<div class="pet-desktop-container" style="display: flex; flex-direction: column; background: #F8F9FA; min-height: 100%;">
-    
-    <style>
-        @media (min-width: 768px) {
-            .mobile-header { display: none !important; }
-            .pet-desktop-container { padding: 40px; max-width: 1000px; margin: 0 auto; background: transparent !important; }
-        }
-    </style>
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <x-slot name="title">Lembretes e Vacinas</x-slot>
 
-    <!-- Top Header c/ Botão Voltar (Apenas Mobile) -->
-    <div class="mobile-header" style="padding: 24px 20px 16px 20px; display: flex; justify-content: space-between; align-items: center; background: #fff;">
-        <a href="{{ route('portal.dashboard') }}" style="color: #191919; text-decoration: none; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px;">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-            Voltar
-        </a>
-        <div style="font-size: 18px; font-weight: 800; color: #191919;">Agenda</div>
-        <div style="width: 20px;"></div> <!-- Spacer -->
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-black text-slate-800">Lembretes & Vacinas</h1>
+            <p class="text-slate-500 mt-1 font-medium">Acompanhe as próximas datas de vacinação e o histórico de imunização dos seus pets.</p>
+        </div>
     </div>
 
-    <div style="padding: 20px;">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <!-- Próximos Agendamentos -->
-        <h2 style="font-size: 20px; font-weight: 800; color: #191919; margin: 0 0 16px 0;">Próximos Agendamentos</h2>
-        
-        @forelse($proximos as $ag)
-            <div style="background: linear-gradient(135deg, #299D91 0%, #0F766E 100%); border-radius: 16px; padding: 20px; margin-bottom: 24px; color: #fff; box-shadow: 0 10px 25px rgba(41, 157, 145, 0.25); position: relative; overflow: hidden;">
-                <!-- Decorativo -->
-                <svg style="position: absolute; right: -20px; bottom: -20px; opacity: 0.1; width: 120px; height: 120px;" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1;">
-                    <div>
-                        <div style="background: rgba(255,255,255,0.2); display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; margin-bottom: 12px;">
-                            {{ ucfirst($ag->data_hora->translatedFormat('l, d/m/Y')) }} às {{ $ag->data_hora->format('H:i') }}
+        <!-- Próximas Vacinas -->
+        <div class="lg:col-span-2 space-y-6">
+            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Próximos Vencimentos
+            </h2>
+            
+            @forelse($proximasVacinas as $vacina)
+                <div class="bg-gradient-to-br from-teal-500 to-teal-700 rounded-2xl p-6 shadow-md text-white relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none transition-transform group-hover:scale-110"></div>
+                    
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <div class="inline-block bg-white/20 px-3 py-1 rounded-lg text-xs font-bold tracking-wider uppercase mb-3">
+                                Vence em {{ $vacina->next_due_date->format('d/m/Y') }}
+                            </div>
+                            <h3 class="text-2xl font-black mb-1">{{ $vacina->name }}</h3>
+                            <p class="text-teal-100 font-medium flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                                Pet: <span class="text-white font-bold">{{ $vacina->pet->name }}</span>
+                            </p>
                         </div>
-                        <h3 style="margin: 0 0 4px 0; font-size: 20px; font-weight: 800;">Retorno: {{ explode(' ', trim($ag->pet->nome))[0] }}</h3>
-                        <p style="margin: 0; font-size: 14px; opacity: 0.9;">Dr(a). {{ explode(' ', trim($ag->veterinario->nome))[0] }}</p>
-                    </div>
-                    <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800;">
-                        {{ substr($ag->pet->nome, 0, 1) }}
+                        
+                        <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center shadow-inner backdrop-blur-sm">
+                            @if($vacina->pet->photo_path)
+                                <img src="{{ Storage::url($vacina->pet->photo_path) }}" alt="{{ $vacina->pet->name }}" class="w-full h-full object-cover rounded-2xl">
+                            @else
+                                <span class="text-xl font-black text-white">{{ substr($vacina->pet->name, 0, 1) }}</span>
+                            @endif
+                        </div>
                     </div>
                 </div>
-
-                @if($ag->observacoes)
-                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.2); position: relative; z-index: 1;">
-                    <p style="margin: 0; font-size: 13px; opacity: 0.9;"><strong>Obs:</strong> {{ $ag->observacoes }}</p>
+            @empty
+                <div class="bg-white rounded-2xl p-10 border border-slate-200 border-dashed text-center">
+                    <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-1">Tudo em dia!</h3>
+                    <p class="text-slate-500 font-medium">Nenhuma vacina próxima do vencimento encontrada.</p>
                 </div>
-                @endif
-            </div>
-        @empty
-            <div style="text-align: center; padding: 32px 20px; background: #fff; border-radius: 16px; border: 1px dashed #EFEFEF; margin-bottom: 24px;">
-                <svg width="40" height="40" fill="none" stroke="#CBD5E1" viewBox="0 0 24 24" stroke-width="1.5" style="margin: 0 auto 12px;"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                <p style="font-size: 15px; font-weight: 700; color: #191919; margin: 0 0 4px 0;">Nenhum agendamento futuro</p>
-                <p style="font-size: 13px; color: #878787; margin: 0;">Você não possui consultas marcadas para os próximos dias.</p>
-                
-                <button style="margin-top: 16px; padding: 10px 20px; background: #E8F5F3; color: #299D91; border: none; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">
-                    Solicitar Agendamento
-                </button>
-            </div>
-        @endforelse
+            @endforelse
+        </div>
 
         <!-- Histórico Passado -->
-        <h2 style="font-size: 18px; font-weight: 800; color: #191919; margin: 32px 0 16px 0;">Histórico</h2>
-        
-        @forelse($historico as $ag)
-            <div style="background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #EFEFEF; display: flex; align-items: center; gap: 16px;">
-                <div style="width: 48px; height: 48px; border-radius: 12px; background: #F8F9FA; display: flex; align-items: center; justify-content: center; color: #64748B;">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-                <div style="flex: 1;">
-                    <div style="font-weight: 700; color: #191919; font-size: 15px;">Consulta de {{ explode(' ', trim($ag->pet->nome))[0] }}</div>
-                    <div style="color: #878787; font-size: 13px; margin-top: 2px;">
-                        {{ $ag->data_hora->format('d/m/Y') }} com Dr(a). {{ explode(' ', trim($ag->veterinario->nome))[0] }}
+        <div class="space-y-6">
+            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Histórico
+            </h2>
+            
+            <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
+                @forelse($historicoVacinas as $vacina)
+                    <div class="flex gap-4 {{ !$loop->last ? 'mb-6 pb-6 border-b border-slate-100' : '' }}">
+                        <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 border border-emerald-100">
+                            <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-800">{{ $vacina->name }}</p>
+                            <p class="text-xs text-slate-500 font-medium mt-0.5">Pet: <span class="text-slate-700">{{ $vacina->pet->name }}</span></p>
+                            <div class="flex gap-2 mt-2">
+                                <span class="bg-slate-50 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-md border border-slate-200">
+                                    Aplicada: {{ $vacina->date_given->format('d/m/Y') }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                @empty
+                    <div class="text-center py-6">
+                        <p class="text-slate-400 text-sm font-medium">Nenhum histórico de vacinação registrado.</p>
+                    </div>
+                @endforelse
             </div>
-        @empty
-            <div style="font-size: 13px; color: #9F9F9F; padding: 10px 0;">Nenhum histórico encontrado.</div>
-        @endforelse
+        </div>
 
     </div>
 </div>

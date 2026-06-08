@@ -6,6 +6,7 @@ use Livewire\WithFileUploads;
 use App\Models\Pet;
 use App\Models\Weight;
 use Illuminate\Support\Facades\Auth;
+use App\Services\AsaasService;
 
 new #[Layout('components.layouts.app')] class extends Component {
     use WithFileUploads;
@@ -31,8 +32,27 @@ new #[Layout('components.layouts.app')] class extends Component {
         $this->weight_recorded_at = now()->format('Y-m-d');
     }
 
+    #[\Livewire\Attributes\Computed]
+    public function canAddPet()
+    {
+        $user = Auth::user();
+        $petCount = $user->pets()->count();
+        
+        $plan = ($user->subscription_status === 'ACTIVE') ? strtolower($user->plan_type) : 'free';
+        
+        if ($plan === 'max') return true;
+        if ($plan === 'pro' && $petCount < 10) return true;
+        if ($plan === 'free' && $petCount < 3) return true;
+        
+        return false;
+    }
+
     public function savePet()
     {
+        if (!$this->canAddPet()) {
+            return;
+        }
+
         $this->validate([
             'name' => 'required|string|max:255',
             'species' => 'nullable|string|max:255',
@@ -50,6 +70,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         Pet::create([
             'user_id' => Auth::id(),
+            'uuid' => \Illuminate\Support\Str::uuid(),
             'name' => $this->name,
             'species' => $this->species,
             'breed' => $this->breed,
@@ -83,15 +104,63 @@ new #[Layout('components.layouts.app')] class extends Component {
         $this->weight_recorded_at = now()->format('Y-m-d');
         $this->showWeightModal = false;
     }
+    public function syncSubscription(AsaasService $asaas)
+    {
+        $user = Auth::user();
+        if ($user->subscription_status === 'PENDING' && $user->asaas_subscription_id) {
+            $result = $asaas->getSubscription($user->asaas_subscription_id);
+            if ($result['success'] && isset($result['data']['status'])) {
+                if ($result['data']['status'] === 'ACTIVE') {
+                    $user->update(['subscription_status' => 'ACTIVE']);
+                    session()->flash('message', 'Pagamento confirmado! Sua assinatura está ativa.');
+                } else {
+                    session()->flash('message', 'O pagamento ainda não foi processado pelo Asaas.');
+                }
+            }
+        }
+    }
 }; ?>
 
 <div class="space-y-6 pb-10">
     <x-slot name="title">Dashboard</x-slot>
 
+    @if (session()->has('message'))
+        <div class="bg-emerald-50 text-emerald-700 p-4 rounded-xl font-bold flex items-center justify-between mb-4 border border-emerald-100" x-data="{ show: true }" x-show="show">
+            <span>{{ session('message') }}</span>
+            <button @click="show = false" class="text-emerald-500 hover:text-emerald-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+    @endif
+
     <!-- Cabeçalho Principal -->
     <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-slate-800">Olá, {{ Auth::user()->name ?? 'Tutor' }}! 👋</h2>
+            <div class="flex items-center gap-3">
+                <h2 class="text-2xl font-bold text-slate-800">Olá, {{ Auth::user()->name ?? 'Tutor' }}! 👋</h2>
+                
+                @if(Auth::user()->plan_type !== 'free')
+                    @if(Auth::user()->subscription_status === 'ACTIVE')
+                        <span class="bg-teal-100 text-teal-800 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-teal-200 shadow-sm flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            Plano {{ ucfirst(Auth::user()->plan_type) }}
+                        </span>
+                    @elseif(Auth::user()->subscription_status === 'PENDING')
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('portal.checkout', ['plan' => Auth::user()->plan_type]) }}" class="bg-orange-100 text-orange-800 hover:bg-orange-200 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-orange-200 shadow-sm transition-colors cursor-pointer" title="Finalizar Pagamento">
+                                Pagamento Pendente
+                            </a>
+                            <button wire:click="syncSubscription" class="bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full p-1 transition-colors" title="Verificar Pagamento">
+                                <svg class="w-4 h-4" wire:loading.class="animate-spin" wire:target="syncSubscription" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            </button>
+                        </div>
+                    @endif
+                @else
+                    <span class="bg-slate-100 text-slate-600 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-slate-200 shadow-sm">
+                        Plano Grátis
+                    </span>
+                @endif
+            </div>
             <p class="text-slate-500 text-base mt-1">Acompanhe a saúde e o desenvolvimento dos seus pets.</p>
         </div>
         <button wire:click="$set('showAddPetModal', true)" class="bg-accent hover:bg-accent-dark text-white font-semibold px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center space-x-2 cursor-pointer">
@@ -106,7 +175,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             
             @forelse(Auth::user()->pets as $pet)
             <!-- Cartão do Perfil do Pet -->
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+            <a href="{{ route('portal.pet', ['pet_id' => $pet->id]) }}" class="block bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden hover:shadow-md hover:border-teal-300 transition-all cursor-pointer group">
                 <div class="absolute top-0 right-0 w-64 h-64 bg-teal-50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
                 
                 <div class="relative shrink-0">
@@ -155,7 +224,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
             @empty
             <div class="bg-white rounded-2xl p-10 shadow-sm border border-slate-200 text-center flex flex-col items-center justify-center">
                 <div class="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center text-primary mb-4">
@@ -169,40 +238,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             </div>
             @endforelse
 
-            <!-- Gráfico de Acompanhamento de Peso -->
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-bold text-slate-800">Histórico de Peso</h3>
-                    <button wire:click="$set('showWeightModal', true)" class="text-sm font-medium text-primary hover:text-white hover:bg-primary transition bg-teal-50 px-4 py-2 rounded-lg border border-teal-100 cursor-pointer">
-                        + Registrar
-                    </button>
-                </div>
-                
-                <div class="relative h-48 w-full flex items-end justify-between px-4 pb-6 pt-4 border-b border-slate-100">
-                    <!-- Linha principal SVG -->
-                    <svg class="absolute inset-0 h-full w-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 100 100">
-                        <path d="M0 80 Q 25 70, 50 40 T 100 20" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round"></path>
-                    </svg>
 
-                    <!-- Pontos -->
-                    <div class="flex flex-col items-center z-10 w-8">
-                        <div class="w-3 h-3 bg-white border-2 border-primary rounded-full mb-4"></div>
-                        <span class="text-xs font-medium text-slate-400">Jan</span>
-                    </div>
-                    <div class="flex flex-col items-center z-10 w-8">
-                        <div class="w-3 h-3 bg-white border-2 border-primary rounded-full mb-[30px]"></div>
-                        <span class="text-xs font-medium text-slate-400">Fev</span>
-                    </div>
-                    <div class="flex flex-col items-center z-10 w-8">
-                        <div class="w-3 h-3 bg-white border-2 border-primary rounded-full mb-[60px]"></div>
-                        <span class="text-xs font-medium text-slate-400">Mar</span>
-                    </div>
-                    <div class="flex flex-col items-center z-10 w-8">
-                        <div class="w-3 h-3 bg-primary ring-2 ring-primary/20 rounded-full mb-[85px]"></div>
-                        <span class="text-xs font-bold text-primary">Abr</span>
-                    </div>
-                </div>
-            </div>
 
         </div>
 
@@ -240,9 +276,9 @@ new #[Layout('components.layouts.app')] class extends Component {
                     </div>
                 </div>
 
-                <button class="w-full mt-4 py-2.5 rounded-lg font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition border border-dashed border-slate-200 text-sm">
+                <a href="{{ route('portal.agendamentos') }}" class="block text-center w-full mt-4 py-2.5 rounded-lg font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition border border-dashed border-slate-200 text-sm cursor-pointer">
                     Ver Calendário
-                </button>
+                </a>
             </div>
 
         </div>
@@ -259,6 +295,18 @@ new #[Layout('components.layouts.app')] class extends Component {
                 </button>
             </div>
             
+            @if(!$this->canAddPet)
+                <div class="p-8 text-center">
+                    <div class="w-16 h-16 bg-orange-50 border border-orange-100 rounded-full flex items-center justify-center text-orange-500 mx-auto mb-4">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-slate-800 text-xl mb-2">Limite Atingido!</h4>
+                    <p class="text-slate-500 font-medium text-sm mb-6">O seu plano atual permite apenas um número limitado de pets. Para adicionar mais membros da família, você precisa fazer um upgrade de plano.</p>
+                    <a href="{{ route('home') }}#planos" class="block w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md shadow-orange-500/20">
+                        Ver Planos e Fazer Upgrade
+                    </a>
+                </div>
+            @else
             <form wire:submit="savePet" class="p-6 space-y-4">
                 
                 <!-- Foto Upload -->
@@ -328,6 +376,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                     </button>
                 </div>
             </form>
+            @endif
         </div>
     </div>
     @endif

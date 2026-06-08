@@ -8,6 +8,12 @@ new #[Layout('components.layouts.guest')] class extends Component {
     public $email = '';
     public $password = '';
     public $errorMessage = '';
+    public $plan = null;
+
+    public function mount()
+    {
+        $this->plan = request()->query('plan');
+    }
 
     public function authenticate()
     {
@@ -18,6 +24,11 @@ new #[Layout('components.layouts.guest')] class extends Component {
 
         if (Auth::attempt(['email' => $this->email, 'password' => $this->password])) {
             request()->session()->regenerate();
+            
+            if (in_array($this->plan, ['pro', 'max'])) {
+                return redirect()->route('portal.checkout', ['plan' => $this->plan]);
+            }
+            
             return redirect()->route('portal.dashboard');
         }
 
@@ -33,7 +44,9 @@ new #[Layout('components.layouts.guest')] class extends Component {
             </svg>
         </div>
         <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">AjudaPet</h1>
-        <p class="text-slate-500 mt-1">Acompanhe a saúde do seu pet de perto</p>
+        <p class="text-slate-500 mt-1">
+            @if($plan === 'pro') Acesse para Assinar o Plano Pro @elseif($plan === 'max') Acesse para Assinar o Plano Max @else Acompanhe a saúde do seu pet de perto @endif
+        </p>
     </div>
 
     <form wire:submit="authenticate" class="space-y-5">
@@ -58,4 +71,8 @@ new #[Layout('components.layouts.guest')] class extends Component {
             <span wire:loading>Entrando...</span>
         </button>
     </form>
+    
+    <div class="mt-6 text-center">
+        <p class="text-sm text-slate-500">Ainda não tem conta? <a href="{{ route('portal.register', ['plan' => $plan]) }}" class="text-primary font-bold hover:underline">Cadastre-se</a></p>
+    </div>
 </div>

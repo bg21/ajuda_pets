@@ -22,6 +22,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'asaas_customer_id',
+        'asaas_subscription_id',
+        'plan_type',
+        'subscription_status',
     ];
 
     /**
